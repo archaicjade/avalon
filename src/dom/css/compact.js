@@ -1,9 +1,9 @@
-import { avalon, oneObject,msie } from '../../seed/core'
+import { avalon, msie } from '../../seed/core'
 import { cssMap, cssHooks, getWindow } from './share'
 
 /* istanbul ignore if */
 if (msie < 9) {
-    avalon.shadowCopy(cssMap, oneObject('float','styleFloat'))
+    cssMap['float'] = 'styleFloat'
     var rnumnonpx = /^-?(?:\d*\.)?\d+(?!px)[^\d\s]+$/i
     var rposition = /^(top|right|bottom|left)$/
     var ralpha = /alpha\([^)]+\)/i

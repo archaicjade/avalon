@@ -24,14 +24,13 @@ var valiDir = avalon.directive('validate', {
         }
     },
     update: function(vdom) {
-
+        
         var validator = vdom.validator
         var dom = validator.dom = vdom.dom
         dom._ms_validate_ = validator
         var fields = validator.fields
         collectFeild(vdom.children, fields, validator)
-        var type = window.netscape ? 'keypress' : 'focusin'
-        avalon.bind(document, type, function(e) {
+        avalon.bind(document, 'focusin', function(e) {
             var dom = e.target
             var duplex = dom._ms_duplex_
             var vdom = (duplex || {}).vdom
@@ -42,7 +41,7 @@ var valiDir = avalon.directive('validate', {
 
             }
         })
-
+        
         //为了方便用户手动执行验证，我们需要为原始vmValidate上添加一个onManual方法
         var v = vdom.vmValidator
         try {
@@ -62,7 +61,7 @@ var valiDir = avalon.directive('validate', {
                 onManual()
             })
         }
-
+        
     },
     validateAll: function(callback) {
         var validator = this
@@ -95,7 +94,7 @@ var valiDir = avalon.directive('validate', {
             fn.call(validator.dom, reasons) //这里只放置未通过验证的组件
         })
     },
-
+    
     validate: function(field, isValidateAll, event) {
         var promises = []
         var value = field.value

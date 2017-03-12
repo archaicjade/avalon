@@ -1,5 +1,5 @@
 /*!
-built in 2017-3-8:0:36 version 2.2.4 by 司徒正美
+built in 2017-1-10:21:14 version 2.2.4 by 司徒正美
 https://github.com/RubyLouvre/avalon/tree/2.2.4
 
 更改下载Promise的提示
@@ -1255,14 +1255,14 @@ https://github.com/RubyLouvre/avalon/tree/2.2.4
         }
     })
 
-    var propMap = {} //不规则的属性名映射
-
-
-    //防止压缩时出错
-    ;'accept-charset,acceptCharset|char,ch|charoff,chOff|class,className|for,htmlFor|http-equiv,httpEquiv'.replace(/[^\|]+/g, function (a) {
-        var k = a.split(',')
-        propMap[k[0]] = k[1]
-    })
+    var propMap = { //不规则的属性名映射
+        'accept-charset': 'acceptCharset',
+        'char': 'ch',
+        charoff: 'chOff',
+        'class': 'className',
+        'for': 'htmlFor',
+        'http-equiv': 'httpEquiv'
+    }
     /*
     contenteditable不是布尔属性
     http://www.zhangxinxu.com/wordpress/2016/01/contenteditable-plaintext-only/
@@ -1330,7 +1330,9 @@ https://github.com/RubyLouvre/avalon/tree/2.2.4
         }
     }
 
-    var cssMap = oneObject('float', 'cssFloat')
+    var cssMap = {
+        'float': 'cssFloat'
+    }
     avalon$2.cssNumber = oneObject('animationIterationCount,columnCount,order,flex,flexGrow,flexShrink,fillOpacity,fontWeight,lineHeight,opacity,orphans,widows,zIndex,zoom')
     var prefixes = ['', '-webkit-', '-o-', '-moz-', '-ms-']
     /* istanbul ignore next */
@@ -1713,13 +1715,12 @@ https://github.com/RubyLouvre/avalon/tree/2.2.4
         }
         return str
     }
-    //https://github.com/RubyLouvre/avalon/issues/1944
-    function readString(str, i, ret) {
-        var end = false,
-            s = 0,
-            i = i || 0
-        ret = ret || []
-        for (var n = str.length; i < n; i++) {
+
+    function readString(str) {
+        var end,
+            s = 0
+        var ret = []
+        for (var i = 0, n = str.length; i < n; i++) {
             var c = str.charAt(i)
             if (!end) {
                 if (c === "'") {
@@ -1735,9 +1736,6 @@ https://github.com/RubyLouvre/avalon/tree/2.2.4
                     end = false
                 }
             }
-        }
-        if (end !== false) {
-            return readString(str, s + 1, ret)
         }
         return ret
     }
@@ -3890,153 +3888,157 @@ https://github.com/RubyLouvre/avalon/tree/2.2.4
     platform.createViewModel = Object.defineProperties
 
     if (typeof Proxy === 'function') {
+        var traps
 
-        //https://developer.mozilla.org/en-US/docs/Archive/Web/Old_Proxy_API
-        var toProxy = function toProxy(definition) {
-            return Proxy.create ? Proxy.create(definition, traps) : new Proxy(definition, traps)
-        }
+        ;(function () {
 
-        var wrapIt = function wrapIt(str) {
-            return '☥' + str + '☥'
-        }
-
-        var updateTrack = function updateTrack(target, name) {
-            var arr = target.$track.match(/[^☥]+/g) || []
-            arr.push(name)
-            target.$track = arr.sort().join('☥')
-        }
-
-        avalon$2.config.inProxyMode = true
-
-        platform.modelFactory = function modelFactory(definition, dd) {
-            var clone = {}
-            for (var i in definition) {
-                clone[i] = definition[i]
-                delete definition[i]
+            //https://developer.mozilla.org/en-US/docs/Archive/Web/Old_Proxy_API
+            var toProxy = function toProxy(definition) {
+                return Proxy.create ? Proxy.create(definition, traps) : new Proxy(definition, traps)
             }
 
-            definition.$id = clone.$id
-            var proxy = new IProxy(definition, dd)
-
-            var vm = toProxy(proxy)
-            //先添加普通属性与监控属性
-            for (var _i4 in clone) {
-                vm[_i4] = clone[_i4]
-            }
-            var $computed = clone.$computed
-            //再添加计算属性
-            if ($computed) {
-                delete clone.$computed
-                for (var _i5 in $computed) {
-                    var val = $computed[_i5]
-                    if (typeof val === 'function') {
-                        var _val = val
-                        val = { get: _val }
-                    }
-                    if (val && val.get) {
-                        val.getter = val.get
-                        //在set方法中的target是IProxy，需要重写成Proxy，才能依赖收集
-                        val.vm = vm
-                        if (val.set) val.setter = val.set
-                        $computed[_i5] = val
-                        delete clone[_i5] //去掉重名的监控属性
-                    } else {
-                        delete $computed[_i5]
-                    }
-                }
-                for (var _i6 in $computed) {
-                    vm[_i6] = $computed[_i6]
-                }
+            var wrapIt = function wrapIt(str) {
+                return '☥' + str + '☥'
             }
 
-            return vm
-        }
-        var traps = {
-            deleteProperty: function deleteProperty(target, name) {
-                if (target.hasOwnProperty(name)) {
-                    //移除一个属性,分三昌:
-                    //1. 移除监听器
-                    //2. 移除真实对象的对应属性
-                    //3. 移除$track中的键名
-                    delete target.$accessors[name]
-                    delete target[name]
-                    target.$track = wrapIt(target.$track).replace(wrapIt(name), '').slice(1, -1)
-                }
-                return true
-            },
-            get: function get(target, name) {
-                if (name === '$model') {
-                    return platform.toJson(target)
-                }
-                //收集依赖
-                var m = target.$accessors[name]
-                if (m && m.get) {
-                    return m.get()
+            var updateTrack = function updateTrack(target, name) {
+                var arr = target.$track.match(/[^☥]+/g) || []
+                arr.push(name)
+                target.$track = arr.sort().join('☥')
+            }
+
+            avalon$2.config.inProxyMode = true
+
+            platform.modelFactory = function modelFactory(definition, dd) {
+                var clone = {}
+                for (var i in definition) {
+                    clone[i] = definition[i]
+                    delete definition[i]
                 }
 
-                return target[name]
-            },
-            set: function set(target, name, value) {
-                if (name === '$model' || name === '$track') {
-                    return true
-                }
-                if (name in $$skipArray) {
-                    target[name] = value
-                    return true
-                }
+                definition.$id = clone.$id
+                var proxy = new IProxy(definition, dd)
 
-                var ac = target.$accessors
-                var oldValue = ac[name] ? ac[name].value : target[name]
-
-                if (oldValue !== value) {
-                    if (!target.hasOwnProperty(name)) {
-                        updateTrack(target, name)
-                    }
-                    if (canHijack(name, value, target.$proxyItemBackdoor)) {
-                        var $computed = target.$computed || {}
-                        //如果是新属性
-                        if (!ac[name]) {
-                            target[name] = value //必须设置，用于hasOwnProperty
-                            var isComputed = !!$computed[name]
-                            var Observable = isComputed ? Computed : Mutation
-                            ac[name] = new Observable(name, value, target)
-                            return true
+                var vm = toProxy(proxy)
+                //先添加普通属性与监控属性
+                for (var _i4 in clone) {
+                    vm[_i4] = clone[_i4]
+                }
+                var $computed = clone.$computed
+                //再添加计算属性
+                if ($computed) {
+                    delete clone.$computed
+                    for (var _i5 in $computed) {
+                        var val = $computed[_i5]
+                        if (typeof val === 'function') {
+                            var _val = val
+                            val = { get: _val }
                         }
-                        var mutation = ac[name]
-                        //创建子对象
-                        mutation.set(value)
-                        target[name] = mutation.value
-                    } else {
-                        target[name] = value
+                        if (val && val.get) {
+                            val.getter = val.get
+                            //在set方法中的target是IProxy，需要重写成Proxy，才能依赖收集
+                            val.vm = vm
+                            if (val.set) val.setter = val.set
+                            $computed[_i5] = val
+                            delete clone[_i5] //去掉重名的监控属性
+                        } else {
+                            delete $computed[_i5]
+                        }
+                    }
+                    for (var _i6 in $computed) {
+                        vm[_i6] = $computed[_i6]
                     }
                 }
-                // set方法必须返回true, 告诉Proxy已经成功修改了这个值,否则会抛
-                //'set' on proxy: trap returned falsish for property xxx 错误
-                return true
+
+                return vm
+            };traps = {
+                deleteProperty: function deleteProperty(target, name) {
+                    if (target.hasOwnProperty(name)) {
+                        //移除一个属性,分三昌:
+                        //1. 移除监听器
+                        //2. 移除真实对象的对应属性
+                        //3. 移除$track中的键名
+                        delete target.$accessors[name]
+                        delete target[name]
+                        target.$track = wrapIt(target.$track).replace(wrapIt(name), '').slice(1, -1)
+                    }
+                    return true
+                },
+                get: function get(target, name) {
+                    if (name === '$model') {
+                        return platform.toJson(target)
+                    }
+                    //收集依赖
+                    var m = target.$accessors[name]
+                    if (m && m.get) {
+                        return m.get()
+                    }
+
+                    return target[name]
+                },
+                set: function set(target, name, value) {
+                    if (name === '$model' || name === '$track') {
+                        return true
+                    }
+                    if (name in $$skipArray) {
+                        target[name] = value
+                        return true
+                    }
+
+                    var ac = target.$accessors
+                    var oldValue = ac[name] ? ac[name].value : target[name]
+
+                    if (oldValue !== value) {
+                        if (!target.hasOwnProperty(name)) {
+                            updateTrack(target, name)
+                        }
+                        if (canHijack(name, value, target.$proxyItemBackdoor)) {
+                            var $computed = target.$computed || {}
+                            //如果是新属性
+                            if (!ac[name]) {
+                                target[name] = value //必须设置，用于hasOwnProperty
+                                var isComputed = !!$computed[name]
+                                var Observable = isComputed ? Computed : Mutation
+                                ac[name] = new Observable(name, value, target)
+                                return true
+                            }
+                            var mutation = ac[name]
+                            //创建子对象
+                            mutation.set(value)
+                            target[name] = mutation.value
+                        } else {
+                            target[name] = value
+                        }
+                    }
+                    // set方法必须返回true, 告诉Proxy已经成功修改了这个值,否则会抛
+                    //'set' on proxy: trap returned falsish for property xxx 错误
+                    return true
+                }
+                //has 只能用于 in 操作符，没什么用删去
+
             }
-            //has 只能用于 in 操作符，没什么用删去
 
-        }
 
-        avalon$2.itemFactory = platform.itemFactory = function itemFactory(before, after) {
-            var definition = before.$model
-            definition.$proxyItemBackdoor = true
-            definition.$id = before.$hashcode + String(after.hashcode || Math.random()).slice(6)
-            definition.$accessors = avalon$2.mix({}, before.$accessors)
-            var vm = platform.modelFactory(definition)
-            vm.$track = before.$track
-            for (var i in after.data) {
-                vm[i] = after.data[i]
+            avalon$2.itemFactory = platform.itemFactory = function itemFactory(before, after) {
+                var definition = before.$model
+                definition.$proxyItemBackdoor = true
+                definition.$id = before.$hashcode + String(after.hashcode || Math.random()).slice(6)
+                definition.$accessors = avalon$2.mix({}, before.$accessors)
+                var vm = platform.modelFactory(definition)
+                vm.$track = before.$track
+                for (var i in after.data) {
+                    vm[i] = after.data[i]
+                }
+                return vm
             }
-            return vm
-        }
 
-        platform.fuseFactory = function fuseFactory(before, after) {
-            var definition = avalon$2.mix(before.$model, after.$model)
-            definition.$id = before.$hashcode + after.$hashcode
-            definition.$accessors = avalon$2.mix({}, before.$accessors, after.$accessors)
-            return platform.modelFactory(definition)
-        }
+            platform.fuseFactory = function fuseFactory(before, after) {
+                var definition = avalon$2.mix(before.$model, after.$model)
+                definition.$id = before.$hashcode + after.$hashcode
+                definition.$accessors = avalon$2.mix({}, before.$accessors, after.$accessors)
+                return platform.modelFactory(definition)
+            }
+        })()
     }
 
     var impDir = avalon$2.directive('important', {
@@ -5920,8 +5922,7 @@ https://github.com/RubyLouvre/avalon/tree/2.2.4
             dom._ms_validate_ = validator
             var fields = validator.fields
             collectFeild(vdom.children, fields, validator)
-            var type = window.netscape ? 'keypress' : 'focusin'
-            avalon$2.bind(document, type, function (e) {
+            avalon$2.bind(document, 'focusin', function (e) {
                 var dom = e.target
                 var duplex = dom._ms_duplex_
                 var vdom = (duplex || {}).vdom
