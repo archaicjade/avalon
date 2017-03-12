@@ -40,12 +40,17 @@ import * as avalon from 'avalon2'
 ###[avalon2官网](http://avalonjs.coding.me/)
 这是基于gitbook制作的,对移动端支持很好,大家上班或睡觉时,可以过目一下.
 
+###[avalon2+webpack2手脚架](https://github.com/sayll/avalon-webpack-start)
 
 ###[QuickStart](https://github.com/crazyliuzc/webpack-avalon2-SPA-seed.git)
 大家期望已久的avalon2+mmRouter+各种组件的综合示例,不断完善中
 
-###[友情推广朋友写的UI库](http://weeksun23.github.io/AvalonBootstrap/index.html#overview)
-基于avalon2+bootstrap
+###[UI库1](http://weeksun23.github.io/AvalonBootstrap/index.html#overview)
+
+###[UI库2](https://github.com/aLoNeIT/flyUI)
+
+CDN: `https://unpkg.com/avalon2@2.2.4/dist/avalon.js`
+用法见[https://unpkg.com/#/](https://unpkg.com/#/)
 
 ###谁在用avalon
 
@@ -102,3 +107,5 @@ ms-important与ms-controller对应的vm.$id一个页面上只能用一次,不能
    <div ms-controller='test'>{{@bbb}}<!--test已经使用了1次!会导致程序出错--></div>
    <div ms-important='test'>{{@bbb}}<!--test已经使用了2次!会导致程序出错--></div>
 ```
+
+
